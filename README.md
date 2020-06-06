@@ -127,7 +127,7 @@ I: AWS SCP policies ok
 I: Validating AWS quota...
 I: AWS quota ok
 I: Ensuring cluster administrator user 'osdCcsAdmin'...
-I: Admin user 'osdCcsAdmin' created successfuly!
+I: Admin user 'osdCcsAdmin' created successfully!
 I: Verifying whether OpenShift command-line tool is available...
 E: OpenShift command-line tool is not installed.
 Go to https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/ to download the OpenShift client and add it to your PATH.
@@ -172,33 +172,45 @@ Created:     May 27, 2020
 
 If installation fails or does not change to ready after 40 minutes, proceed to the Installation debugging document.
 
-In order to login to your cluster, you must configure an Identity Provider.  *Link to supported IDPs*
+### Access your cluster
 
-Create an IDP backed by github:
+In order to login to your cluster, you must configure an Identity Provider and then create a user. This guide covers creating a `dedicated-admin` user and then creating a `cluster-admin` user.
 
-```
-$ moactl create idp --cluster rh-moa-test1 --type github                                                                                               
-I: Loading cluster 'rh-moa-test1'                                                                                                                                                               
-I: Loading identity providers for cluster 'rh-moa-test1'                                                                                                                                        
-To use GitHub as an identity provider, you must first register the application:                                                                                                                 
-? List of GitHub organizations or teams that will have access to this cluster: openshift-online                                                                                                 
+#### Configure an IDP
+
+This example uses GitHub as and Identity Provider.
+
+> To view other supported Identity Providers run `moactl create idp --help`
+
+Run the following command to create an Identiy Provider backed by GitHub. Follow the instructions in the output to register your application with GitHub.
+
+```bash
+$ moactl create idp --cluster rh-moa-test1 --type github
+I: Loading cluster 'rh-moa-test1'
+I: Loading identity providers for cluster 'rh-moa-test1'
+To use GitHub as an identity provider, you must first register the application:
+? List of GitHub organizations or teams that will have access to this cluster: openshift-online
 * Open the following URL: https://github.com/organizations/openshift-online/settings/applications/new?oauth_application%5Bcallback_url%5D=https%3A%2F%2Foauth-openshift.apps.rh-moa-test1.j9n4.s
-1.devshift.org%2Foauth2callback%2Fgithub-1&oauth_application%5Bname%5D=rh-moa-test1&oauth_application%5Burl%5D=https%3A%2F%2Fconsole-openshift-console.apps.rh-moa-test1.j9n4.s1.devshift.org   
-* Click on 'Register application'                                                                                                                                                               
-? Copy the Client ID provided by GitHub: fec638e9b0a0a770abe2                                                                                                                                   
-? Copy the Client Secret provided by GitHub: 709a37b23147fb06c831b92759c3b7bb28913f46                                                                                                           
-I: Configuring IDP for cluster 'rh-moa-test1'                                                                                                                                                   
+1.devshift.org%2Foauth2callback%2Fgithub-1&oauth_application%5Bname%5D=rh-moa-test1&oauth_application%5Burl%5D=https%3A%2F%2Fconsole-openshift-console.apps.rh-moa-test1.j9n4.s1.devshift.org
+* Click on 'Register application'
+? Copy the Client ID provided by GitHub: <client-id-from-GitHub>
+? Copy the Client Secret provided by GitHub: <client-secret-from-GitHub>
+I: Configuring IDP for cluster 'rh-moa-test1'
 I: Identity Provider 'github-1' has been created. You need to ensure that there is a list of cluster administrators defined. See `moactl user add --help` for more information. To login into th
 e console, open https://console-openshift-console.apps.rh-moa-test1.j9n4.s1.devshift.org and click on github-1
 ```
 
-Note:  the IDP can take 1-2 minutes to be configured within your cluster.
+> The IDP can take 1-2 minutes to be configured within your cluster.
+
+Check to see that your identity provider has been configured.
 
 ```
 $ moactl list idps --cluster rh-moa-test1
 NAME        TYPE      AUTH URL
 github-1    GitHub    https://oauth-openshift.apps.rh-moa-test1.j9n4.s1.devshift.org/oauth2callback/github-1
 ```
+
+#### Create a `dedicated-admin` user
 
 Now promote your github user to Dedicated Admin *link to dedicated admin docs*
 
@@ -263,9 +275,11 @@ Error from server (Forbidden): cronjobs.batch is forbidden: User "jeremyeder" ca
 Error from server (Forbidden): imagestreams.image.openshift.io is forbidden: User "jeremyeder" cannot list resource "imagestreams" in API group "image.openshift.io" in the namespace "openshift
 -apiserver"
 ```
+#### Enable `cluster-admin` and create a `cluster-admin` user
 
-Now enable cluster-admin capability on the cluster:
-```
+First enable `cluster-admin` capability on the cluster:
+
+```bash
 $ moactl edit cluster rh-moa-test1 --enable-cluster-admins
 ```
 
@@ -291,4 +305,18 @@ NAME          TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
 service/api   ClusterIP   172.30.23.241   <none>        443/TCP   18h
 NAME                       DESIRED   CURRENT   READY   UP-TO-DATE   AVAILABLE   NODE SELECTOR                     AGE
 daemonset.apps/apiserver   3         3         3       3            3           node-role.kubernetes.io/master=   18h
+```
+
+### Deleting your cluster
+
+When you are done with your cluster you can delete it.
+
+```bash
+$ moactl delete cluster -c rh-moa-test1
+```
+
+To delete the CloudFormation as well, run the following command:
+
+```bash
+$ moactl init --delete-stack
 ```
